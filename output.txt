@@ -1,0 +1,6 @@
+const vmt_BBS
+  :BBS.Start
+  :BBS.Sort
+  :BBS.Print
+  :BBS.Init
+
