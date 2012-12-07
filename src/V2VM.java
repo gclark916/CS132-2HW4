@@ -94,7 +94,6 @@ public class V2VM {
 private static String translateFunctions(VFunction[] functions, FileOutputStream regAllocStream) {
 		
 		FlowVisitor flowVisitor = new FlowVisitor();
-		FirstPassVisitor firstPass = new FirstPassVisitor();
 		SecondPassVisitor secondPass = new SecondPassVisitor();
 		String code = "";
 		
