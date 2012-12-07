@@ -172,7 +172,7 @@ private static String translateFunctions(VFunction[] functions) {
 				InputSecondPass input2 = new InputSecondPass(variableToRegister);
 				for (VInstr instruction : function.body)
 				{
-					instruction.accept(input2, secondPass);
+					code = code + instruction.accept(input2, secondPass);
 				}
 				
 				code = code + "\n";

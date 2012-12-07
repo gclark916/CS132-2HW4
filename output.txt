@@ -5,6 +5,19 @@ const vmt_MT4
 func Main [in 0, out 3, local 2]
   local[0] = $s0
   local[1] = $s1
+  $s0 = HeapAllocZ(4)
+nullnull  Error("null pointer")
+nullnull  $a0 = $s0
+  $a1 = 1
+  $a2 = 2
+  $a3 = 3
+  out[0] = 4
+  out[1] = 5
+  out[2] = 6
+  call $s1
+  $s0 = $v0
+  PrintIntS($s0)
+  ret
 
 func MT4.Start [in 3, out 3, local 8]
   local[0] = $s0
@@ -22,6 +35,23 @@ func MT4.Start [in 3, out 3, local 8]
   $s2 = in[0]
   $s1 = in[1]
   $s0 = in[2]
+  PrintIntS($s5)
+  PrintIntS($s4)
+  PrintIntS($s3)
+  PrintIntS($s2)
+  PrintIntS($s1)
+  PrintIntS($s0)
+nullnull  $a0 = $s6
+  $a1 = $s0
+  $a2 = $s1
+  $a3 = $s2
+  out[0] = $s3
+  out[1] = $s4
+  out[2] = $s5
+  call $s7
+  $s0 = $v0
+  $v0 = $s0
+  ret
 
 func MT4.Change [in 3, out 0, local 0]
   $t0 = $a0
@@ -31,4 +61,12 @@ func MT4.Change [in 3, out 0, local 0]
   $t3 = in[0]
   $t4 = in[1]
   $t5 = in[2]
+  PrintIntS($t0)
+  PrintIntS($t1)
+  PrintIntS($t2)
+  PrintIntS($t3)
+  PrintIntS($t4)
+  PrintIntS($t5)
+  $v0 = 0
+  ret
 
