@@ -14,8 +14,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class V2VM {
 	
@@ -44,7 +49,7 @@ public class V2VM {
 	{
 		InputStream inputStream;
 		try {
-			inputStream = new FileInputStream("./vapor/BubbleSort.vapor");
+			inputStream = new FileInputStream("./vapor/BinaryTree.vapor");
 			PrintStream errorStream = System.err;
 			VaporProgram program = parseVapor(inputStream, errorStream);
 			
@@ -103,7 +108,7 @@ private static String translateFunctions(VFunction[] functions) {
 				Map<String, Range> variableLives = new HashMap<String, Range>();
 				for (VVarRef.Local parameter : function.params)
 				{
-					Range range = new Range(parameter.sourcePos.line, parameter.sourcePos.line);
+					Range range = new Range(parameter.ident, parameter.sourcePos.line, parameter.sourcePos.line);
 					variableLives.put(parameter.ident, range);
 				}
 				
@@ -113,13 +118,105 @@ private static String translateFunctions(VFunction[] functions) {
 					instruction.accept(input, firstPass);
 				}
 				
+				Map<String, String> variableToRegister = new HashMap<String, String>();
+				int maxConcurrentlyLive = linearScan(input.variableLives, input.isLeaf, variableToRegister);
+				int spills = 0;
+				int calleeSaves = 0;
+				if (input.isLeaf && maxConcurrentlyLive > 9)
+				{
+					spills = 9 - maxConcurrentlyLive;
+				}
+				else if (!input.isLeaf)
+				{
+					calleeSaves = maxConcurrentlyLive;
+					if (maxConcurrentlyLive > 8)
+					{
+						calleeSaves = 8;
+						spills = maxConcurrentlyLive - 8;
+					}
+				}
+				int stackLocal = calleeSaves + spills; // no callerSaves, only leaf funcs use t registers
+				
 				int stackOut = input.largestOut;
+				
+				code = code + "func " + function.ident + " [in " + String.valueOf(stackIn) + ", out " 
+				+ String.valueOf(stackOut) + ", local " + String.valueOf(stackLocal) + "]\n";
+				
+				// debugging purposes
+				/*for (String variable : variableToRegister.keySet())
+				{
+					code = code + "  " + variable + ": " + variableToRegister.get(variable) + "\n";
+				}*/
+				
+				// Body goes here
+				
+				code = code + "\n";
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return code;
+	}
+
+	private static int linearScan(Map<String, Range> variableLives, boolean isLeaf, Map<String, String> variableToRegister) 
+	{
+		String[] leafRegisters = {"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8"};
+		String[] nonleafRegisters = {"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7"};
+		String[] registerArray = null;
+		if (isLeaf)
+			registerArray = leafRegisters;
+		else
+			registerArray = nonleafRegisters;
+		SortedSet<String> availableRegisters = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+		availableRegisters.addAll(Arrays.asList(registerArray));
+		
+		int maxVariablesConcurrentlyLive = 0;
+		Range[] rangeArray = new Range[variableLives.values().size()];
+		variableLives.values().toArray(rangeArray);
+		Arrays.sort(rangeArray, Range.RangeComparator);
+		Set<String> liveVariables = new HashSet<String>();
+		int spills = 0;
+		for (Range range : rangeArray)
+		{
+			int currentBeginning = range.begin;
+			
+			// First remove any live variables whose liveliness ended at or before this variables's range
+			Set<String> variablesToRemove = new HashSet<String>();
+			for (String variable : liveVariables)
+			{
+				int variableEnd = variableLives.get(variable).end;
+				if (variableEnd <= currentBeginning)
+					variablesToRemove.add(variable);
+			}
+			
+			for (String variable : variablesToRemove)
+			{
+				liveVariables.remove(variable);
+				availableRegisters.add(variableToRegister.get(variable));
+			}
+			
+			// Add the current variable to the live set
+			liveVariables.add(range.variableName);
+			
+			// Set max number of concurrently live variables if necessary
+			if (liveVariables.size() > maxVariablesConcurrentlyLive)
+				maxVariablesConcurrentlyLive = liveVariables.size();
+			
+			// Assign a register (or spill slot) to variable
+			if (availableRegisters.isEmpty())
+			{
+				variableToRegister.put(range.variableName, Integer.toString(spills)); // Registers start with $, spills start with just the number
+				spills++;
+			}
+			else
+			{
+				variableToRegister.put(range.variableName, availableRegisters.first());
+				availableRegisters.remove(availableRegisters.first());
+			}
+		}
+		
+		return maxVariablesConcurrentlyLive;
 	}
 
 	private static String translateData(VDataSegment[] dataSegments) {

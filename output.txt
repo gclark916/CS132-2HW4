@@ -1,6 +1,260 @@
-const vmt_BBS
-  :BBS.Start
-  :BBS.Sort
-  :BBS.Print
-  :BBS.Init
+const vmt_BT
+  :BT.Start
+
+const vmt_Tree
+  :Tree.Init
+  :Tree.SetRight
+  :Tree.SetLeft
+  :Tree.GetRight
+  :Tree.GetLeft
+  :Tree.GetKey
+  :Tree.SetKey
+  :Tree.GetHas_Right
+  :Tree.GetHas_Left
+  :Tree.SetHas_Left
+  :Tree.SetHas_Right
+  :Tree.Compare
+  :Tree.Insert
+  :Tree.Delete
+  :Tree.Remove
+  :Tree.RemoveRight
+  :Tree.RemoveLeft
+  :Tree.Search
+  :Tree.Print
+  :Tree.RecPrint
+
+func Main [in 0, out 0, local 2]
+  t.2: $s0
+  t.1: $s1
+  t.0: $s0
+
+func BT.Start [in 0, out 0, local 2]
+  t.5: $s1
+  t.4: $s1
+  t.19: $s1
+  t.3: $s1
+  t.18: $s1
+  t.2: $s1
+  t.17: $s1
+  t.9: $s1
+  t.8: $s1
+  root: $s0
+  t.7: $s1
+  t.6: $s1
+  t.1: $s1
+  t.0: $s0
+  t.22: $s1
+  t.23: $s1
+  t.20: $s1
+  t.21: $s1
+  t.24: $s1
+  t.25: $s0
+  t.10: $s1
+  t.11: $s1
+  t.12: $s1
+  t.13: $s1
+  this: $s0
+  t.14: $s1
+  t.15: $s1
+  t.16: $s1
+
+func Tree.Init [in 0, out 0, local 0]
+  v_key: $t0
+  this: $t1
+
+func Tree.SetRight [in 0, out 0, local 0]
+  rn: $t0
+  this: $t1
+
+func Tree.SetLeft [in 0, out 0, local 0]
+  ln: $t0
+  this: $t1
+
+func Tree.GetRight [in 0, out 0, local 0]
+  t.0: $t0
+  this: $t0
+
+func Tree.GetLeft [in 0, out 0, local 0]
+  t.0: $t0
+  this: $t0
+
+func Tree.GetKey [in 0, out 0, local 0]
+  t.0: $t0
+  this: $t0
+
+func Tree.SetKey [in 0, out 0, local 0]
+  v_key: $t0
+  this: $t1
+
+func Tree.GetHas_Right [in 0, out 0, local 0]
+  t.0: $t0
+  this: $t0
+
+func Tree.GetHas_Left [in 0, out 0, local 0]
+  t.0: $t0
+  this: $t0
+
+func Tree.SetHas_Left [in 0, out 0, local 0]
+  val: $t0
+  this: $t1
+
+func Tree.SetHas_Right [in 0, out 0, local 0]
+  val: $t0
+  this: $t1
+
+func Tree.Compare [in 0, out 0, local 0]
+  t.2: $t0
+  ntb: $t2
+  nti: $t3
+  num2: $t0
+  t.1: $t0
+  t.0: $t0
+  num1: $t1
+  this: $t0
+
+func Tree.Insert [in 0, out 0, local 5]
+  t.5: $s0
+  t.4: $s0
+  t.3: $s0
+  t.2: $s4
+  t.9: $s0
+  t.8: $s0
+  new_node: $s1
+  t.7: $s0
+  t.6: $s0
+  v_key: $s0
+  t.1: $s2
+  key_aux: $s0
+  t.0: $s1
+  current_node: $s2
+  t.10: $s0
+  t.11: $s0
+  t.12: $s0
+  t.13: $s0
+  cont: $s3
+  this: $s0
+
+func Tree.Delete [in 0, out 0, local 9]
+  is_root: $s6
+  t.5: $s0
+  t.4: $s7
+  t.3: $s7
+  t.2: $s7
+  t.9: $s0
+  t.8: $s0
+  t.7: $s0
+  t.6: $s0
+  v_key: $s0
+  t.1: $s7
+  t.0: $s7
+  cont: $s4
+  parent_node: $s3
+  ntb: $s0
+  key_aux: 0
+  current_node: $s2
+  t.10: $s0
+  t.11: $s0
+  t.12: $s0
+  t.13: $s0
+  this: $s1
+  t.14: $s0
+  t.15: $s0
+  t.16: $s0
+  found: $s5
+
+func Tree.Remove [in 0, out 0, local 4]
+  t.5: $s3
+  t.4: $s3
+  t.3: $s3
+  t.17: $s0
+  t.2: $s3
+  t.9: $s3
+  t.8: $s0
+  t.7: $s0
+  t.6: $s3
+  auxkey1: $s0
+  auxkey2: $s0
+  c_node: $s0
+  t.1: $s3
+  t.0: $s3
+  p_node: $s2
+  t.10: $s0
+  t.11: $s0
+  t.12: $s0
+  t.13: $s0
+  t.14: $s0
+  this: $s1
+  t.15: $s0
+  t.16: $s0
+
+func Tree.RemoveRight [in 0, out 0, local 5]
+  t.5: $s4
+  t.4: $s3
+  t.3: $s3
+  t.2: $s3
+  t.9: $s0
+  t.8: $s0
+  t.7: $s3
+  t.6: $s3
+  c_node: $s0
+  t.1: $s3
+  t.0: $s3
+  p_node: $s2
+  t.10: $s0
+  this: $s1
+
+func Tree.RemoveLeft [in 0, out 0, local 5]
+  t.5: $s4
+  t.4: $s3
+  t.3: $s3
+  t.2: $s3
+  t.9: $s0
+  t.8: $s0
+  t.7: $s3
+  t.6: $s3
+  c_node: $s0
+  t.1: $s3
+  t.0: $s3
+  p_node: $s2
+  t.10: $s0
+  this: $s1
+
+func Tree.Search [in 0, out 0, local 6]
+  t.5: $s0
+  t.4: $s4
+  t.3: $s4
+  t.2: $s4
+  t.8: $s0
+  t.7: $s0
+  t.6: $s0
+  v_key: $s0
+  t.1: $s4
+  key_aux: $s5
+  t.0: $s4
+  current_node: $s1
+  ifound: $s3
+  cont: $s2
+  this: $s0
+
+func Tree.Print [in 0, out 0, local 3]
+  t.0: $s2
+  this: $s0
+  current_node: $s1
+
+func Tree.RecPrint [in 0, out 0, local 4]
+  t.5: $s3
+  t.4: $s2
+  t.3: $s2
+  t.2: $s2
+  ntb: $s2
+  t.9: $s3
+  t.8: $s3
+  t.7: $s3
+  t.6: $s3
+  t.1: $s2
+  t.0: $s2
+  node: $s0
+  t.10: $s3
+  t.11: $s0
+  this: $s1
 

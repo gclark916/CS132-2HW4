@@ -5,6 +5,8 @@ public class Input {
 	public int largestOut;
 	
 	public Map<String, Range> variableLives;
+	
+	public boolean isLeaf;
 
 	/**
 	 * @param largestOut
@@ -14,5 +16,6 @@ public class Input {
 		super();
 		this.largestOut = largestOut;
 		this.variableLives = variableLives;
+		this.isLeaf = true;
 	}
 }

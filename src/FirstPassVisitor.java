@@ -29,6 +29,8 @@ public class FirstPassVisitor extends VisitorPR<Object, Object, Exception> {
 	public Object visit(Object p, VCall c) throws Exception {
 		Input input = (Input) p;
 		
+		input.isLeaf = false;
+		
 		if ((c.args.length - 4) > input.largestOut)
 			input.largestOut = c.args.length - 4;
 		
@@ -115,12 +117,12 @@ public class FirstPassVisitor extends VisitorPR<Object, Object, Exception> {
 		Range range = variableLives.get(name);
 		if (range != null)
 		{
-			Range newRange = new Range(range.begin, line);
+			Range newRange = new Range(name, range.begin, line);
 			variableLives.put(name, newRange);
 		}
 		else
 		{
-			Range newRange = new Range(line, line);
+			Range newRange = new Range(name, line, line);
 			variableLives.put(name, newRange);
 		}
 		
