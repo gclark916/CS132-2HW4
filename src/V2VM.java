@@ -5,6 +5,7 @@ import cs132.vapor.ast.VFunction;
 import cs132.vapor.ast.VInstr;
 import cs132.vapor.ast.VOperand;
 import cs132.vapor.ast.VVarRef;
+import cs132.vapor.ast.VVarRef.Local;
 import cs132.vapor.ast.VaporProgram;
 import cs132.vapor.ast.VBuiltIn.Op;
 
@@ -49,7 +50,7 @@ public class V2VM {
 	{
 		InputStream inputStream;
 		try {
-			inputStream = new FileInputStream("./vapor/MoreThan4.vapor");
+			inputStream = new FileInputStream("./vapor/Loop.vapor");
 			PrintStream errorStream = System.err;
 			VaporProgram program = parseVapor(inputStream, errorStream);
 			
@@ -91,6 +92,7 @@ public class V2VM {
 	
 private static String translateFunctions(VFunction[] functions) {
 		
+		FlowVisitor flowVisitor = new FlowVisitor();
 		FirstPassVisitor firstPass = new FirstPassVisitor();
 		SecondPassVisitor secondPass = new SecondPassVisitor();
 		String code = "";
@@ -102,11 +104,93 @@ private static String translateFunctions(VFunction[] functions) {
 		try {
 			for (VFunction function : functions)
 			{
+				// Generate line -> instruction map
+				Map<Integer, VInstr> lineInstructionMap = new HashMap<Integer, VInstr>();
+				for (VInstr instruction : function.body)
+				{
+					lineInstructionMap.put(instruction.sourcePos.line, instruction);
+				}
+				
+				// Generate control flow graph
+				Map<Integer, FlowNode> flowNodeMap = new HashMap<Integer, FlowNode>();
+				Map<Integer, Set<Integer>> lineToPrevLinesMap = new HashMap<Integer, Set<Integer>>();
+				
+				Map<String, SortedSet<Integer>> variableUses = new HashMap<String, SortedSet<Integer>>();
+				Map<String, SortedSet<Integer>> variableAssignments = new HashMap<String, SortedSet<Integer>>();
+				
+				// Add parameters to variableAssignments map
+				for (Local parameter : function.params)
+				{
+					FlowInput.updateMap(variableAssignments, parameter.ident, function.sourcePos.line);
+				}
+				
+				// Create FlowNodes and update variable assignment and usage maps
+				FlowInput flowInput = new FlowInput(function.labels, variableUses, variableAssignments);
+				for (VInstr instruction : function.body)
+				{
+					FlowNode node = (FlowNode) instruction.accept(flowInput, flowVisitor);
+					flowNodeMap.put(node.lineNumber, node);
+					
+					for (Integer nextLine : node.nextLines)
+					{
+						if (lineToPrevLinesMap.containsKey(nextLine))
+						{
+							Set<Integer> prevLines = lineToPrevLinesMap.get(nextLine);
+							Set<Integer> newPrevLines = new HashSet<Integer>(prevLines);
+							newPrevLines.add(node.lineNumber);
+							lineToPrevLinesMap.put(nextLine, newPrevLines);
+						}
+						else
+						{
+							Set<Integer> newPrevLines = new HashSet<Integer>();
+							newPrevLines.add(node.lineNumber);
+							lineToPrevLinesMap.put(nextLine, newPrevLines);
+						}
+					}
+				}
+				
+				// Set the prev Lines sets for the control flow graph nodes
+				for (Integer line : flowNodeMap.keySet())
+				{
+					FlowNode node = flowNodeMap.get(line);
+					Set<Integer> prevLines = lineToPrevLinesMap.get(line);
+					if (prevLines == null)
+					{
+						prevLines = new HashSet<Integer>();
+						prevLines.add(function.sourcePos.line);
+					}
+					FlowNode newNode = new FlowNode(line, node.nextLines, prevLines);
+					flowNodeMap.put(line, newNode);
+				}
+				
+				// Find min and max line numbers for liveness for each variable
+				Map<String, Range> linearRanges = new HashMap<String, Range>();
+				for (String variable : function.vars)
+				{
+					if (variableUses.containsKey(variable))
+					{
+						int begin = Integer.MAX_VALUE;
+						int end = Integer.MIN_VALUE;
+						// Track each usage back to an assignment
+						for (Integer useLine : variableUses.get(variable))
+						{
+							Range range = findAssignmentForVariableUsage(variable, useLine, variableAssignments.get(variable), flowNodeMap);
+							if (range.begin < begin)
+								begin = range.begin;
+							if (range.end > end)
+								end = range.end;
+						}
+						
+						Range varRange = new Range(variable, begin, end);
+						linearRanges.put(variable, varRange);
+					}
+				}
+				
 				int stackIn = 0;
 				if (function.params.length > 4)
 					stackIn = function.params.length - 4;
 				
-				Map<String, Range> variableLives = new HashMap<String, Range>();
+				/*Map<String, Range> variableLives = new HashMap<String, Range>();
 				for (VVarRef.Local parameter : function.params)
 				{
 					Range range = new Range(parameter.ident, parameter.sourcePos.line, parameter.sourcePos.line);
@@ -118,17 +202,17 @@ private static String translateFunctions(VFunction[] functions) {
 				for (VInstr instruction : function.body)
 				{
 					instruction.accept(input, firstPass);
-				}
+				}*/
 				
 				Map<String, String> variableToRegister = new HashMap<String, String>();
-				int maxConcurrentlyLive = linearScan(input.variableLives, input.isLeaf, variableToRegister);
+				int maxConcurrentlyLive = linearScan(linearRanges, flowInput.isLeaf, variableToRegister);
 				int spills = 0;
 				int calleeSaves = 0;
-				if (input.isLeaf && maxConcurrentlyLive > 9)
+				if (flowInput.isLeaf && maxConcurrentlyLive > 9)
 				{
 					spills = 9 - maxConcurrentlyLive;
 				}
-				else if (!input.isLeaf)
+				else if (!flowInput.isLeaf)
 				{
 					calleeSaves = maxConcurrentlyLive;
 					if (maxConcurrentlyLive > 8)
@@ -139,7 +223,7 @@ private static String translateFunctions(VFunction[] functions) {
 				}
 				int stackLocal = calleeSaves + spills; // no callerSaves, only leaf funcs use t registers
 				
-				int stackOut = input.largestOut;
+				int stackOut = flowInput.largestOut;
 				
 				code = code + "func " + function.ident + " [in " + String.valueOf(stackIn) + ", out " 
 				+ String.valueOf(stackOut) + ", local " + String.valueOf(stackLocal) + "]\n";
@@ -150,7 +234,8 @@ private static String translateFunctions(VFunction[] functions) {
 					code = code + "  " + variable + ": " + variableToRegister.get(variable) + "\n";
 				}*/
 				// Save $s_ registers if necessary
-				if (!input.isLeaf)
+				
+				if (!flowInput.isLeaf)
 				{
 					for (int regIndex = 0; regIndex < calleeSaves; regIndex++)
 					{
@@ -170,8 +255,14 @@ private static String translateFunctions(VFunction[] functions) {
 				
 				// Second Pass, translate instructions
 				InputSecondPass input2 = new InputSecondPass(variableToRegister);
+				int labelIndex = 0;
 				for (VInstr instruction : function.body)
 				{
+					while (labelIndex < function.labels.length && function.labels[labelIndex].sourcePos.line < instruction.sourcePos.line)
+					{
+						code = code + function.labels[labelIndex].ident + ":\n";
+						labelIndex++;
+					}
 					code = code + instruction.accept(input2, secondPass);
 				}
 				
@@ -182,6 +273,55 @@ private static String translateFunctions(VFunction[] functions) {
 			e.printStackTrace();
 		}
 		return code;
+	}
+
+	private static Range findAssignmentForVariableUsage(String variable, Integer useLine, SortedSet<Integer> assignmentLines, Map<Integer, FlowNode> flowNodeMap) 
+	{
+		int currentLine = useLine;
+		Range range = new Range(variable, currentLine, currentLine);
+		Set<Integer> prevLines = flowNodeMap.get(currentLine).prevLines;
+		Set<Integer> alreadyVisited = new HashSet<Integer>();
+		alreadyVisited.add(currentLine);
+		for (Integer prevLine : prevLines)
+		{			
+			int assignLine = recursivelyFindAssignment(prevLine, assignmentLines, alreadyVisited, flowNodeMap, range);
+			if (assignLine != 0)
+				break;
+		}
+		return range;
+	}
+
+	private static int recursivelyFindAssignment(Integer currentLine,
+			SortedSet<Integer> assignmentLines, Set<Integer> alreadyVisited,
+			Map<Integer, FlowNode> flowNodeMap, Range range) {
+		int assignLine = 0;
+		
+		if (alreadyVisited.contains(currentLine))
+			return 0;
+		
+		if (currentLine < range.begin)
+			range.begin = currentLine;
+		if (currentLine > range.end)
+			range.end = currentLine;
+		
+		alreadyVisited.add(currentLine);
+		
+		if (assignmentLines.contains(currentLine))
+			return currentLine;
+		
+		FlowNode node = flowNodeMap.get(currentLine);
+		if (node == null)
+			return 0;
+		Set<Integer> prevLines = node.prevLines;
+		if (prevLines == null)
+			System.err.print("something went wrong");
+		for (Integer prevLine : prevLines)
+		{			
+			assignLine = recursivelyFindAssignment(prevLine, assignmentLines, alreadyVisited, flowNodeMap, range);
+			if (assignLine != 0)
+				break;
+		}
+		return assignLine;
 	}
 
 	private static int linearScan(Map<String, Range> variableLives, boolean isLeaf, Map<String, String> variableToRegister) 

@@ -7,6 +7,7 @@ import cs132.vapor.ast.VCall;
 import cs132.vapor.ast.VGoto;
 import cs132.vapor.ast.VInstr.VisitorPR;
 import cs132.vapor.ast.VMemRead;
+import cs132.vapor.ast.VMemRef.Global;
 import cs132.vapor.ast.VMemWrite;
 import cs132.vapor.ast.VOperand;
 import cs132.vapor.ast.VReturn;
@@ -71,7 +72,7 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 			dest = getVariable(input.variableToRegister, c.dest.toString());
 			operand0 = getVariable(input.variableToRegister, c.args[0].toString());
 			String operand1 = getVariable(input.variableToRegister, c.args[1].toString());
-			code = "  " + dest + " = " + c.op.name + "(" + operand0 + ", " + operand1 + ")\n";
+			code = "  " + dest + " = " + c.op.name + "(" + operand0 + " " + operand1 + ")\n";
 			break;
 		case "PrintIntS":
 			operand0 = getVariable(input.variableToRegister, c.args[0].toString());
@@ -94,26 +95,44 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 
 	@Override
 	public Object visit(Object p, VMemWrite w) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		InputSecondPass input = (InputSecondPass) p;
+		String code = "vmemwrite error\n";
+		String sourceReg = getVariable(input.variableToRegister, w.source.toString());
+		if (Global.class.isInstance(w.dest))
+		{
+			Global dest = (Global) w.dest;
+			String destReg = getVariable(input.variableToRegister, dest.base.toString());
+			code = "  [" + destReg + (dest.byteOffset >= 0 ? "+" : "") + Integer.toString(dest.byteOffset) + "] = " + sourceReg + "\n";
+		}
+		return code;
 	}
 
 	@Override
 	public Object visit(Object p, VMemRead r) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		InputSecondPass input = (InputSecondPass) p;
+		String code = "vmemRead error\n";
+		String destReg = getVariable(input.variableToRegister, r.dest.toString());
+		if (Global.class.isInstance(r.source))
+		{
+			Global source = (Global) r.source;
+			String sourceReg = getVariable(input.variableToRegister, source.base.toString());
+			code = "  " + destReg + " = [" + sourceReg + (source.byteOffset >= 0 ? "+" : "") + Integer.toString(source.byteOffset) + "]\n";  
+		}
+		return code;
 	}
 
 	@Override
 	public Object visit(Object p, VBranch b) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		InputSecondPass input = (InputSecondPass) p;
+		String condRegister = getVariable(input.variableToRegister, b.value.toString());
+		String code = "  if" + (b.positive ? " " : "0 ") + condRegister + " goto :" + b.target.ident + "\n";
+		return code;
 	}
 
 	@Override
 	public Object visit(Object p, VGoto g) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		String code = "  goto " + g.target.toString() + "\n";
+		return code;
 	}
 
 	@Override
