@@ -4,7 +4,6 @@ import cs132.vapor.ast.VDataSegment;
 import cs132.vapor.ast.VFunction;
 import cs132.vapor.ast.VInstr;
 import cs132.vapor.ast.VOperand;
-import cs132.vapor.ast.VVarRef;
 import cs132.vapor.ast.VVarRef.Local;
 import cs132.vapor.ast.VaporProgram;
 import cs132.vapor.ast.VBuiltIn.Op;
@@ -46,11 +45,11 @@ public class V2VM {
 		return program;
 	}
 	
-	public static void main(String args[])
+	public static void main2(String args[])
 	{
 		InputStream inputStream;
 		try {
-			inputStream = new FileInputStream("./vapor/Loop.vapor");
+			inputStream = new FileInputStream("./vapor/BubbleSort.vapor");
 			PrintStream errorStream = System.err;
 			VaporProgram program = parseVapor(inputStream, errorStream);
 			
@@ -68,7 +67,7 @@ public class V2VM {
 		}
 	}
 	
-	public static void main2(String args[])
+	public static void main(String args[])
 	{
 		InputStream inputStream;
 		try {
@@ -190,35 +189,21 @@ private static String translateFunctions(VFunction[] functions) {
 				if (function.params.length > 4)
 					stackIn = function.params.length - 4;
 				
-				/*Map<String, Range> variableLives = new HashMap<String, Range>();
-				for (VVarRef.Local parameter : function.params)
-				{
-					Range range = new Range(parameter.ident, parameter.sourcePos.line, parameter.sourcePos.line);
-					variableLives.put(parameter.ident, range);
-				}
-				
-				// First Pass, create liveness ranges
-				Input input = new Input(0, variableLives);
-				for (VInstr instruction : function.body)
-				{
-					instruction.accept(input, firstPass);
-				}*/
-				
 				Map<String, String> variableToRegister = new HashMap<String, String>();
 				int maxConcurrentlyLive = linearScan(linearRanges, flowInput.isLeaf, variableToRegister);
 				int spills = 0;
 				int calleeSaves = 0;
-				if (flowInput.isLeaf && maxConcurrentlyLive > 9)
+				if (flowInput.isLeaf && maxConcurrentlyLive > leafRegisters.length)
 				{
-					spills = 9 - maxConcurrentlyLive;
+					spills = maxConcurrentlyLive - leafRegisters.length;
 				}
 				else if (!flowInput.isLeaf)
 				{
 					calleeSaves = maxConcurrentlyLive;
-					if (maxConcurrentlyLive > 8)
+					if (maxConcurrentlyLive > nonleafRegisters.length)
 					{
-						calleeSaves = 8;
-						spills = maxConcurrentlyLive - 8;
+						calleeSaves = nonleafRegisters.length;
+						spills = maxConcurrentlyLive - nonleafRegisters.length;
 					}
 				}
 				int stackLocal = calleeSaves + spills; // no callerSaves, only leaf funcs use t registers
@@ -243,14 +228,44 @@ private static String translateFunctions(VFunction[] functions) {
 					}
 				}
 				
+				// Any numeric registers should be local array spills and need to be renamed
+				for (String variable : variableToRegister.keySet())
+				{
+					String reg = variableToRegister.get(variable);
+					if (isNumeric(reg))
+					{
+						reg = "local[" + Integer.toString(calleeSaves + Integer.valueOf(reg)) + "]";
+						variableToRegister.put(variable, reg);
+					}
+				}
+				
 				// Assign any arguments (including arguments saved on the stack as the in array)
 				for (int argIndex = 0; argIndex < function.params.length && argIndex < 4; argIndex++)
 				{
-					code = code + "  " + variableToRegister.get(function.params[argIndex].toString()) + " = $a" + Integer.toString(argIndex) + "\n";
+					String parameter = function.params[argIndex].toString();
+					String arg = variableToRegister.get(parameter);
+					if (arg != null)
+					{
+						code = code + "  " + arg + " = $a" + Integer.toString(argIndex) + "\n";
+					}
 				}
 				for (int argIndex = 4; argIndex < function.params.length; argIndex++)
 				{
-					code = code + "  " + variableToRegister.get(function.params[argIndex].toString()) + " = in[" + Integer.toString(argIndex-4) + "]\n";
+					String parameter = function.params[argIndex].toString();
+					String arg = variableToRegister.get(parameter);
+					
+					if (arg != null)
+					{
+						String argReg = arg;
+						String setupArg = "";
+						if (arg.startsWith("l"))
+						{
+							setupArg = "  " + arg + " = $v1\n";
+							argReg = "$v1";
+						}
+						
+						code = code + "  " + argReg + " = in[" + Integer.toString(argIndex-4) + "]\n" + setupArg;
+					}
 				}
 				
 				// Second Pass, translate instructions
@@ -285,8 +300,6 @@ private static String translateFunctions(VFunction[] functions) {
 		for (Integer prevLine : prevLines)
 		{			
 			int assignLine = recursivelyFindAssignment(prevLine, assignmentLines, alreadyVisited, flowNodeMap, range);
-			if (assignLine != 0)
-				break;
 		}
 		return range;
 	}
@@ -318,16 +331,12 @@ private static String translateFunctions(VFunction[] functions) {
 		for (Integer prevLine : prevLines)
 		{			
 			assignLine = recursivelyFindAssignment(prevLine, assignmentLines, alreadyVisited, flowNodeMap, range);
-			if (assignLine != 0)
-				break;
 		}
 		return assignLine;
 	}
 
 	private static int linearScan(Map<String, Range> variableLives, boolean isLeaf, Map<String, String> variableToRegister) 
 	{
-		String[] leafRegisters = {"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8"};
-		String[] nonleafRegisters = {"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7"};
 		String[] registerArray = null;
 		if (isLeaf)
 			registerArray = leafRegisters;
@@ -398,4 +407,22 @@ private static String translateFunctions(VFunction[] functions) {
 		}
 		return code;
 	}
+	
+	private static boolean isNumeric(String str)  
+	{
+		try 
+		{ 
+			int i = Integer.parseInt(str);
+		} catch(NumberFormatException nfe)  
+		{ 
+			return false;
+		}
+		
+		return true;  
+	}
+	
+	private static String[] nonleafRegisters = {"$s0", "$s1"};
+	private static String[] leafRegisters = {"$t0", "$t1"};
+	//String[] leafRegisters = {"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8"};
+	//String[] nonleafRegisters = {"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7"};
 }

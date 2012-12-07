@@ -18,9 +18,31 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 	@Override
 	public Object visit(Object p, VAssign a) throws Exception {
 		InputSecondPass input = (InputSecondPass) p;
-		String dest = getVariable(input.variableToRegister, a.dest.toString());
+		
+		String code = "";
+		
 		String source = getVariable(input.variableToRegister, a.source.toString());
-		String code = "  " + dest + " = " + source + "\n";
+		String sourceReg = source;
+		String setupSource = "";
+		if (source.startsWith("l"))
+		{
+			setupSource = "  $v1 = " + source + "\n";
+			sourceReg = "$v1";
+		}
+		
+		String dest = getVariable(input.variableToRegister, a.dest.toString());
+		if (dest != null)
+		{
+			String destReg = dest;
+			String setupDest = "";
+			if (dest.startsWith("l"))
+			{
+				setupDest = "  " + dest + " = $v1\n";
+				destReg = "$v1";
+			}
+			
+			code = setupSource + "  " + destReg + " = " + sourceReg + "\n" + setupDest;
+		}
 		return code;
 	}
 
@@ -37,19 +59,44 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 		}
 		for (int argIndex = 4; argIndex < c.args.length; argIndex++)
 		{
-			String argReg = getVariable(input.variableToRegister, c.args[argIndex].toString());
-			String assignArg = "  out[" + Integer.toString(argIndex-4) + "] = " + argReg + "\n";
+			String arg = getVariable(input.variableToRegister, c.args[argIndex].toString());
+			String argReg = arg;
+			String setupArg = "";
+			if (arg.startsWith("l"))
+			{
+				setupArg = "  $v1 = " + arg + "\n";
+				argReg = "$v1";
+			}
+			
+			String assignArg = setupArg + "  out[" + Integer.toString(argIndex-4) + "] = " + argReg + "\n";
 			setupArguments = setupArguments + assignArg;
 		}
 		
+		String setupCall = "";
 		String funcAddr = getVariable(input.variableToRegister, c.addr.toString());
-		String call = "  call " + funcAddr + "\n";
+		String funcReg = funcAddr;
+		if (funcAddr.startsWith("l"))
+		{
+			setupCall = "  $v1 = " + funcAddr + "\n";
+			funcReg = "$v1";
+		}
+		String call = setupCall + "  call " + funcReg + "\n";
 		
 		String assignReturnValue = "";
 		if (c.dest != null)
 		{
-			String destRegister = getVariable(input.variableToRegister, c.dest.ident);
-			assignReturnValue = "  " + destRegister + " = $v0\n";
+			String setupDest = "";
+			String dest = getVariable(input.variableToRegister, c.dest.ident);
+			if (dest != null)
+			{
+				String destReg = dest;
+				if (dest.startsWith("l"))
+				{
+					setupDest = "  " + dest + " = $v1\n";
+					destReg = "$v1";
+				}
+				assignReturnValue = "  " + destReg + " = $v0\n" + setupDest;
+			}
 		}
 		String code = setupArguments + call + assignReturnValue;
 		return code;
@@ -61,6 +108,10 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 		String code = "";
 		String operand0 = "";
 		String dest = "";
+		String destReg = "";
+		String setupDest = "";
+		String operand0Reg = "";
+		String setupOperand0 = "";
 		switch (c.op.name)
 		{
 		case "Add":
@@ -69,19 +120,67 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 		case "Eq":
 		case "Lt":
 		case "LtS":
-			dest = getVariable(input.variableToRegister, c.dest.toString());
 			operand0 = getVariable(input.variableToRegister, c.args[0].toString());
+			operand0Reg = operand0;
+			setupOperand0 = "";
+			if (operand0.startsWith("l"))
+			{
+				setupOperand0 = "  $v0 = " + operand0 + "\n";
+				operand0Reg = "$v0";
+			}
+			
 			String operand1 = getVariable(input.variableToRegister, c.args[1].toString());
-			code = "  " + dest + " = " + c.op.name + "(" + operand0 + " " + operand1 + ")\n";
+			String operand1Reg = operand1;
+			String setupOperand1 = "";
+			if (operand1.startsWith("l"))
+			{
+				setupOperand1 = "  $v1 = " + operand1 + "\n";
+				operand1Reg = "$v1";
+			}
+			
+			dest = getVariable(input.variableToRegister, c.dest.toString());
+			destReg = dest;
+			setupDest = "";
+			if (dest.startsWith("l"))
+			{
+				setupDest = "  " + dest + " = $v1\n";
+				destReg = "$v1";
+			}
+			
+			code = setupOperand0 + setupOperand1 + "  " + destReg + " = " + c.op.name + "(" + operand0Reg + " " + operand1Reg + ")\n" + setupDest;
 			break;
 		case "PrintIntS":
 			operand0 = getVariable(input.variableToRegister, c.args[0].toString());
-			code = "  PrintIntS(" + operand0 + ")\n";
+			operand0Reg = operand0;
+			setupOperand0 = "";
+			if (operand0.startsWith("l"))
+			{
+				setupOperand0 = "  $v0 = " + operand0 + "\n";
+				operand0Reg = "$v0";
+			}
+			
+			code = setupOperand0 + "  PrintIntS(" + operand0Reg + ")\n";
 			break;
 		case "HeapAllocZ":
-			dest = getVariable(input.variableToRegister, c.dest.toString());
 			operand0 = getVariable(input.variableToRegister, c.args[0].toString());
-			code = "  " + dest + " = HeapAllocZ(" + operand0 + ")\n";
+			operand0Reg = operand0;
+			setupOperand0 = "";
+			if (operand0.startsWith("l"))
+			{
+				setupOperand0 = "  $v0 = " + operand0 + "\n";
+				operand0Reg = "$v0";
+			}
+			
+			dest = getVariable(input.variableToRegister, c.dest.toString());
+			destReg = dest;
+			setupDest = "";
+			if (dest.startsWith("l"))
+			{
+				setupDest = "  " + dest + " = $v1\n";
+				destReg = "$v1";
+			}
+			
+			code = setupOperand0 + "  " + destReg + " = HeapAllocZ(" + operand0Reg + ")\n" + setupDest;
 			break;
 		case "Error":
 			code = "  Error(" + c.args[0].toString() + ")\n";
@@ -97,12 +196,29 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 	public Object visit(Object p, VMemWrite w) throws Exception {
 		InputSecondPass input = (InputSecondPass) p;
 		String code = "vmemwrite error\n";
-		String sourceReg = getVariable(input.variableToRegister, w.source.toString());
+		
+		String source = getVariable(input.variableToRegister, w.source.toString());
+		String sourceReg = source;
+		String setupSource = "";
+		if (source.startsWith("l"))
+		{
+			setupSource = "  $v1 = " + source + "\n";
+			sourceReg = "$v1";
+		}
+		
 		if (Global.class.isInstance(w.dest))
 		{
-			Global dest = (Global) w.dest;
-			String destReg = getVariable(input.variableToRegister, dest.base.toString());
-			code = "  [" + destReg + (dest.byteOffset >= 0 ? "+" : "") + Integer.toString(dest.byteOffset) + "] = " + sourceReg + "\n";
+			Global addr = (Global) w.dest;
+			String dest = getVariable(input.variableToRegister, addr.base.toString());
+			String destReg = dest;
+			String setupDest = "";
+			if (dest.startsWith("l"))
+			{
+				setupDest = "  $v0 = " + dest + "\n";
+				destReg = "$v0";
+			}
+			
+			code = setupSource + setupDest + "  [" + destReg + (addr.byteOffset >= 0 ? "+" : "") + Integer.toString(addr.byteOffset) + "] = " + sourceReg + "\n";
 		}
 		return code;
 	}
@@ -111,12 +227,29 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 	public Object visit(Object p, VMemRead r) throws Exception {
 		InputSecondPass input = (InputSecondPass) p;
 		String code = "vmemRead error\n";
-		String destReg = getVariable(input.variableToRegister, r.dest.toString());
+		
+		String dest = getVariable(input.variableToRegister, r.dest.toString());
+		String destReg = dest;
+		String setupDest = "";
+		if (dest.startsWith("l"))
+		{
+			setupDest = "  $v0 = " + dest + "\n";
+			destReg = "$v0";
+		}
+		
 		if (Global.class.isInstance(r.source))
 		{
-			Global source = (Global) r.source;
-			String sourceReg = getVariable(input.variableToRegister, source.base.toString());
-			code = "  " + destReg + " = [" + sourceReg + (source.byteOffset >= 0 ? "+" : "") + Integer.toString(source.byteOffset) + "]\n";  
+			Global addr = (Global) r.source;
+			String source = getVariable(input.variableToRegister, addr.base.toString());
+			String sourceReg = source;
+			String setupSource = "";
+			if (source.startsWith("l"))
+			{
+				setupSource = "  $v1 = " + source + "\n";
+				sourceReg = "$v1";
+			}
+			
+			code = setupDest + setupSource + "  " + destReg + " = [" + sourceReg + (addr.byteOffset >= 0 ? "+" : "") + Integer.toString(addr.byteOffset) + "]\n";  
 		}
 		return code;
 	}
@@ -124,8 +257,16 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 	@Override
 	public Object visit(Object p, VBranch b) throws Exception {
 		InputSecondPass input = (InputSecondPass) p;
-		String condRegister = getVariable(input.variableToRegister, b.value.toString());
-		String code = "  if" + (b.positive ? " " : "0 ") + condRegister + " goto :" + b.target.ident + "\n";
+		String cond = getVariable(input.variableToRegister, b.value.toString());
+		String condReg = cond;
+		String setupCond = "";
+		if (cond.startsWith("l"))
+		{
+			setupCond = "  $v1 = " + cond + "\n";
+			condReg = "$v1";
+		}
+		
+		String code = setupCond + "  if" + (b.positive ? " " : "0 ") + condReg + " goto :" + b.target.ident + "\n";
 		return code;
 	}
 
@@ -150,10 +291,24 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 
 	private String getVariable(Map<String, String> variableToRegister, String name) 
 	{
-		String ret = name;
+		if (isNumeric(name) || name.startsWith(":"))
+			return name;
 		if (variableToRegister.containsKey(name))
-			ret = variableToRegister.get(name);
-		return ret;
+			return variableToRegister.get(name);
+		return null;
+	}
+	
+	private boolean isNumeric(String str)  
+	{
+		try 
+		{ 
+			int i = Integer.parseInt(str);
+		} catch(NumberFormatException nfe)  
+		{ 
+			return false;
+		}
+		
+		return true;  
 	}
 
 }

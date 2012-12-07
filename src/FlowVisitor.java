@@ -131,7 +131,7 @@ public class FlowVisitor extends VisitorPR<Object, Object, Exception> {
 		Global source = (Global) r.source;
 		updateMap(input.variableUses, source.base.toString(), line);
 		
-		updateMap(input.variableUses, r.dest.toString(), line);
+		updateMap(input.variableAssignments, r.dest.toString(), line);
 		
 		int nextLine = getNextInstructionLine(input.labels, r.sourcePos.line);
 		Set<Integer> nextLines = new HashSet<Integer>();
