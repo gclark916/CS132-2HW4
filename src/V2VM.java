@@ -10,6 +10,7 @@ import cs132.vapor.ast.VBuiltIn.Op;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
@@ -49,12 +50,13 @@ public class V2VM {
 	{
 		InputStream inputStream;
 		try {
-			inputStream = new FileInputStream("./vapor/BubbleSort.vapor");
+			inputStream = new FileInputStream("./vapor/BinaryTree.vapor");
 			PrintStream errorStream = System.err;
+			FileOutputStream regAllocStream = new FileOutputStream("regAlloc.txt");
 			VaporProgram program = parseVapor(inputStream, errorStream);
 			
 			String data = translateData(program.dataSegments);
-			String text = translateFunctions(program.functions);
+			String text = translateFunctions(program.functions, regAllocStream);
 			
 			System.out.print(data);
 			System.out.print(text);
@@ -76,7 +78,7 @@ public class V2VM {
 			VaporProgram program = parseVapor(inputStream, errorStream);
 			
 			String data = translateData(program.dataSegments);
-			String text = translateFunctions(program.functions);
+			String text = translateFunctions(program.functions, null);
 			
 			System.out.print(data);
 			System.out.print(text);
@@ -89,7 +91,7 @@ public class V2VM {
 		}
 	}
 	
-private static String translateFunctions(VFunction[] functions) {
+private static String translateFunctions(VFunction[] functions, FileOutputStream regAllocStream) {
 		
 		FlowVisitor flowVisitor = new FlowVisitor();
 		FirstPassVisitor firstPass = new FirstPassVisitor();
@@ -180,6 +182,14 @@ private static String translateFunctions(VFunction[] functions) {
 								end = range.end;
 						}
 						
+						for (Integer assignLine : variableAssignments.get(variable))
+						{
+							if (assignLine < begin)
+								begin = assignLine;
+							if (assignLine > end)
+								end = assignLine;
+						}
+						
 						Range varRange = new Range(variable, begin, end);
 						linearRanges.put(variable, varRange);
 					}
@@ -214,12 +224,25 @@ private static String translateFunctions(VFunction[] functions) {
 				+ String.valueOf(stackOut) + ", local " + String.valueOf(stackLocal) + "]\n";
 				
 				// debugging purposes
-				/*for (String variable : variableToRegister.keySet())
+				if (regAllocStream != null)
 				{
-					code = code + "  " + variable + ": " + variableToRegister.get(variable) + "\n";
-				}*/
-				// Save $s_ registers if necessary
+					String functionHeader = "func " + function.ident + " [in " + String.valueOf(stackIn) + ", out " 
+							+ String.valueOf(stackOut) + ", local " + String.valueOf(stackLocal) + "]\n";
+					regAllocStream.write(functionHeader.getBytes());
+					
+					String linearRangesOutput = "";
+					for (String variable : linearRanges.keySet())
+					{
+						Range range = linearRanges.get(variable);
+						linearRangesOutput = linearRangesOutput + "  " + variable + ": " + Integer.toString(range.begin) + "-" + Integer.toString(range.end) + "\n";
+					}
+					
+					regAllocStream.write(linearRangesOutput.getBytes());
+					regAllocStream.write("\n".getBytes());
+				}
 				
+				
+				// Save $s_ registers if necessary
 				if (!flowInput.isLeaf)
 				{
 					for (int regIndex = 0; regIndex < calleeSaves; regIndex++)
@@ -278,7 +301,24 @@ private static String translateFunctions(VFunction[] functions) {
 						code = code + function.labels[labelIndex].ident + ":\n";
 						labelIndex++;
 					}
-					code = code + instruction.accept(input2, secondPass);
+					
+					if (instruction.equals(function.body[function.body.length-1]))
+					{
+						code = code + instruction.accept(input2, secondPass);
+						
+						// Restore $s_ registers if necessary
+						if (!flowInput.isLeaf)
+						{
+							for (int regIndex = 0; regIndex < calleeSaves; regIndex++)
+							{
+								code = code + "  $s" + Integer.toString(regIndex) + " = local[" + Integer.toString(regIndex) + "]\n";
+							}
+						}
+						
+						code = code + "  ret\n";
+					}
+					else
+						code = code + instruction.accept(input2, secondPass);
 				}
 				
 				code = code + "\n";
@@ -421,8 +461,8 @@ private static String translateFunctions(VFunction[] functions) {
 		return true;  
 	}
 	
-	private static String[] nonleafRegisters = {"$s0", "$s1"};
-	private static String[] leafRegisters = {"$t0", "$t1"};
-	//String[] leafRegisters = {"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8"};
-	//String[] nonleafRegisters = {"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7"};
+	//private static String[] nonleafRegisters = {"$s0", "$s1"};
+	//private static String[] leafRegisters = {"$t0", "$t1"};
+	private static String[] leafRegisters = {"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$t8"};
+	private static String[] nonleafRegisters = {"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7"};
 }

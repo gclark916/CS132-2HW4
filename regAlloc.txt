@@ -1,0 +1,231 @@
+func Main [in 0, out 0, local 2]
+  t.2: 36-37
+  t.1: 34-36
+  t.0: 29-36
+
+func BT.Start [in 0, out 0, local 2]
+  t.5: 72-74
+  t.4: 66-68
+  t.19: 137-138
+  t.3: 60-62
+  t.18: 135-137
+  t.2: 53-55
+  t.17: 130-131
+  t.9: 96-98
+  t.8: 90-92
+  root: 43-163
+  t.7: 84-86
+  t.6: 78-80
+  t.1: 47-49
+  t.0: 41-43
+  t.22: 149-151
+  t.23: 155-157
+  t.20: 142-144
+  t.21: 144-145
+  t.24: 161-163
+  t.25: 163-164
+  t.10: 102-104
+  t.11: 108-110
+  t.12: 114-116
+  t.13: 116-117
+  t.14: 121-123
+  t.15: 123-124
+  t.16: 128-130
+
+func Tree.Init [in 0, out 0, local 0]
+  v_key: 167-168
+  this: 167-170
+
+func Tree.SetRight [in 0, out 0, local 0]
+  rn: 173-174
+  this: 173-174
+
+func Tree.SetLeft [in 0, out 0, local 0]
+  ln: 177-178
+  this: 177-178
+
+func Tree.GetRight [in 0, out 0, local 0]
+  t.0: 182-183
+  this: 181-182
+
+func Tree.GetLeft [in 0, out 0, local 0]
+  t.0: 186-187
+  this: 185-186
+
+func Tree.GetKey [in 0, out 0, local 0]
+  t.0: 190-191
+  this: 189-190
+
+func Tree.SetKey [in 0, out 0, local 0]
+  v_key: 193-194
+  this: 193-194
+
+func Tree.GetHas_Right [in 0, out 0, local 0]
+  t.0: 198-199
+  this: 197-198
+
+func Tree.GetHas_Left [in 0, out 0, local 0]
+  t.0: 202-203
+  this: 201-202
+
+func Tree.SetHas_Left [in 0, out 0, local 0]
+  val: 205-206
+  this: 205-206
+
+func Tree.SetHas_Right [in 0, out 0, local 0]
+  val: 209-210
+  this: 209-210
+
+func Tree.Compare [in 0, out 0, local 0]
+  t.2: 222-223
+  ntb: 214-230
+  nti: 215-221
+  num2: 213-216
+  t.1: 221-222
+  t.0: 216-217
+  num1: 213-221
+
+func Tree.Insert [in 0, out 0, local 5]
+  t.5: 259-260
+  t.4: 257-259
+  t.3: 252-253
+  t.2: 249-251
+  t.9: 288-290
+  t.8: 279-281
+  new_node: 235-315
+  t.7: 273-275
+  t.6: 264-266
+  v_key: 232-315
+  t.1: 239-241
+  key_aux: 251-252
+  t.0: 233-235
+  current_node: 242-315
+  t.10: 290-291
+  t.11: 295-297
+  t.12: 304-306
+  t.13: 310-312
+  cont: 243-315
+  this: 232-242
+
+func Tree.Delete [in 0, out 0, local 9]
+  is_root: 324-416
+  t.5: 355-356
+  t.4: 346-348
+  t.3: 340-341
+  t.2: 338-340
+  t.9: 392-397
+  t.8: 368-370
+  t.7: 362-363
+  t.6: 360-362
+  v_key: 319-416
+  t.1: 333-334
+  t.0: 330-332
+  cont: 322-416
+  parent_node: 321-416
+  key_aux: 332-355
+  current_node: 320-416
+  t.10: 381-383
+  t.11: 383-384
+  t.12: 384-385
+  t.13: 389-391
+  this: 319-416
+  t.14: 391-392
+  t.15: 401-403
+  found: 323-418
+  t.16: 407-409
+
+func Tree.Remove [in 0, out 0, local 5]
+  t.5: 440-442
+  t.4: 438-439
+  t.3: 436-438
+  t.17: 492-494
+  t.2: 428-430
+  t.9: 460-462
+  t.8: 456-462
+  t.7: 454-456
+  t.6: 448-450
+  auxkey1: 450-465
+  auxkey2: 462-465
+  c_node: 420-450
+  t.1: 426-427
+  t.0: 424-426
+  p_node: 420-494
+  t.10: 463-465
+  t.11: 465-466
+  t.12: 470-473
+  t.13: 472-473
+  t.14: 477-479
+  this: 420-487
+  t.15: 485-488
+  t.16: 487-488
+
+func Tree.RemoveRight [in 0, out 0, local 6]
+  t.5: 523-525
+  t.4: 519-525
+  t.3: 517-519
+  t.2: 512-526
+  t.9: 541-542
+  t.8: 539-542
+  t.7: 531-533
+  t.6: 525-526
+  c_node: 500-534
+  t.1: 507-508
+  t.0: 505-507
+  p_node: 500-548
+  t.10: 546-548
+  this: 500-541
+
+func Tree.RemoveLeft [in 0, out 0, local 6]
+  t.5: 574-576
+  t.4: 570-576
+  t.3: 568-570
+  t.2: 563-577
+  t.9: 592-593
+  t.8: 590-593
+  t.7: 582-584
+  t.6: 576-577
+  c_node: 551-585
+  t.1: 558-559
+  t.0: 556-558
+  p_node: 551-599
+  t.10: 597-599
+  this: 551-592
+
+func Tree.Search [in 0, out 0, local 6]
+  t.5: 635-636
+  t.4: 626-628
+  t.3: 621-622
+  t.2: 619-621
+  t.8: 647-649
+  t.7: 642-643
+  t.6: 640-642
+  v_key: 602-660
+  key_aux: 613-635
+  t.1: 614-615
+  t.0: 611-613
+  current_node: 603-660
+  ifound: 605-662
+  cont: 604-660
+  this: 602-603
+
+func Tree.Print [in 0, out 0, local 3]
+  t.0: 666-668
+  this: 664-668
+  current_node: 665-668
+
+func Tree.RecPrint [in 0, out 0, local 4]
+  t.5: 695-697
+  t.4: 686-687
+  t.3: 684-686
+  t.2: 679-687
+  t.9: 706-714
+  t.8: 704-705
+  t.7: 702-704
+  t.6: 697-698
+  t.1: 677-678
+  t.0: 675-677
+  node: 671-713
+  t.10: 711-713
+  t.11: 713-714
+  this: 671-714
+

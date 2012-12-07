@@ -161,14 +161,15 @@ public class FlowVisitor extends VisitorPR<Object, Object, Exception> {
 	@Override
 	public Object visit(Object p, VGoto g) throws Exception {
 		FlowInput input = (FlowInput) p;
-		int nextLine = getNextInstructionLine(input.labels, g.sourcePos.line);
+		
 		Set<Integer> nextLines = new HashSet<Integer>();
-		nextLines.add(nextLine);
+		String targetLabel = g.target.toString();
 		for (VCodeLabel label : input.labels)
 		{
-			if (label.ident.equals(g.target.toString()))
+			if (label.ident.equals(targetLabel.substring(1)))
 			{
-				nextLines.add(getNextInstructionLine(input.labels, label.sourcePos.line));
+				int nextLine = getNextInstructionLine(input.labels, label.sourcePos.line);
+				nextLines.add(nextLine);
 			}
 		}
 		return new FlowNode(g.sourcePos.line, nextLines, null);

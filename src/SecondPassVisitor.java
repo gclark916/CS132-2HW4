@@ -233,7 +233,7 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 		String setupDest = "";
 		if (dest.startsWith("l"))
 		{
-			setupDest = "  $v0 = " + dest + "\n";
+			setupDest = "  " + dest + " = $v0\n";
 			destReg = "$v0";
 		}
 		
@@ -249,7 +249,7 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 				sourceReg = "$v1";
 			}
 			
-			code = setupDest + setupSource + "  " + destReg + " = [" + sourceReg + (addr.byteOffset >= 0 ? "+" : "") + Integer.toString(addr.byteOffset) + "]\n";  
+			code = setupSource + "  " + destReg + " = [" + sourceReg + (addr.byteOffset >= 0 ? "+" : "") + Integer.toString(addr.byteOffset) + "]\n" + setupDest;  
 		}
 		return code;
 	}
@@ -285,7 +285,7 @@ public class SecondPassVisitor extends VisitorPR<Object, Object, Exception> {
 			String valueReg = getVariable(input.variableToRegister, r.value.toString());
 			setReturnValue = "  $v0 = " + valueReg + "\n";
 		}
-		String code = setReturnValue + "  ret\n";
+		String code = setReturnValue;
 		return code;
 	}
 
