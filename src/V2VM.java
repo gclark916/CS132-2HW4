@@ -49,7 +49,7 @@ public class V2VM {
 	{
 		InputStream inputStream;
 		try {
-			inputStream = new FileInputStream("./vapor/BinaryTree.vapor");
+			inputStream = new FileInputStream("./vapor/MoreThan4.vapor");
 			PrintStream errorStream = System.err;
 			VaporProgram program = parseVapor(inputStream, errorStream);
 			
@@ -92,6 +92,7 @@ public class V2VM {
 private static String translateFunctions(VFunction[] functions) {
 		
 		FirstPassVisitor firstPass = new FirstPassVisitor();
+		SecondPassVisitor secondPass = new SecondPassVisitor();
 		String code = "";
 		
 		// First determine how big the in, out, and local arrays need to be for each function
@@ -112,6 +113,7 @@ private static String translateFunctions(VFunction[] functions) {
 					variableLives.put(parameter.ident, range);
 				}
 				
+				// First Pass, create liveness ranges
 				Input input = new Input(0, variableLives);
 				for (VInstr instruction : function.body)
 				{
@@ -147,8 +149,31 @@ private static String translateFunctions(VFunction[] functions) {
 				{
 					code = code + "  " + variable + ": " + variableToRegister.get(variable) + "\n";
 				}*/
+				// Save $s_ registers if necessary
+				if (!input.isLeaf)
+				{
+					for (int regIndex = 0; regIndex < calleeSaves; regIndex++)
+					{
+						code = code + "  local[" + Integer.toString(regIndex) + "] = $s" + Integer.toString(regIndex) + "\n";
+					}
+				}
 				
-				// Body goes here
+				// Assign any arguments (including arguments saved on the stack as the in array)
+				for (int argIndex = 0; argIndex < function.params.length && argIndex < 4; argIndex++)
+				{
+					code = code + "  " + variableToRegister.get(function.params[argIndex].toString()) + " = $a" + Integer.toString(argIndex) + "\n";
+				}
+				for (int argIndex = 4; argIndex < function.params.length; argIndex++)
+				{
+					code = code + "  " + variableToRegister.get(function.params[argIndex].toString()) + " = in[" + Integer.toString(argIndex-4) + "]\n";
+				}
+				
+				// Second Pass, translate instructions
+				InputSecondPass input2 = new InputSecondPass(variableToRegister);
+				for (VInstr instruction : function.body)
+				{
+					instruction.accept(input2, secondPass);
+				}
 				
 				code = code + "\n";
 			}
